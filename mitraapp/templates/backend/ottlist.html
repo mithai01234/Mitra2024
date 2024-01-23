@@ -1,0 +1,119 @@
+ {% include 'backend/header.html' %}
+   {% include 'backend/sidebar.html' %}
+
+
+ {% load static %}
+  <!-- Content Wrapper. Contains page content -->
+<!-- Content Wrapper. Contains page content -->
+  <div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1 class="m-0"><?= $page_title;?></h1>
+          </div><!-- /.col -->
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="#">Home</a></li>
+              <li class="breadcrumb-item active"><?= $page_title;?></li>
+            </ol>
+          </div><!-- /.col -->
+        </div><!-- /.row -->
+      </div><!-- /.container-fluid -->
+    </div>
+
+      <div class="container-xl">
+
+    <div class="table-responsive">
+        <div class="table-wrapper">
+<div class="col-12 ">
+                <a href="{%  url 'add_accounts' %}"><button class="btn btn-success btn-sm"><i class="fa fa-plus"></i> Upload  </button></a>
+
+              </div>
+            <div class="table-title">
+                <div class="row">
+                    <div class="col-sm-8"><h2>Ott List<b>Details</b></h2></div>
+
+                </div>
+            </div>
+
+            <table id="example1" class="table table-striped table-hover table-bordered">
+                <thead>
+                    <tr>
+                        <th>Sl No</th>
+                        <th>Ott Id</th>
+                        <th>Title</th>
+<!--                        <th>Date Of Birth</th>-->
+                        <th>Description</th>
+                        <th>Ott</th>
+                        <th>Category</th>
+                        <th>Subcategory</th>
+                        <th>Uploaded_date</th>
+                        <th>Status</th>
+                           <th>Actions</th>
+
+                    </tr>
+                </thead>
+                <tbody>
+                {% for i in regform %}
+                    <tr>
+                        <td>{{forloop.counter}}</td>
+                        <td>{{i.id}}</td>
+                        <td>{{i.title}}</td>
+<!--                        <td>{{i.dob}}</td>-->
+                        <td>{{i.description}}</td>
+                         <td>
+  {% if i.file %}
+                                 <video width="100" height="100" controls>
+    <source src="{{  i.file.url }}" >
+    Your browser does not support the video tag.
+</video>
+    {% else %}
+        <p>No Video found.</p>
+    {% endif %}
+
+                        </td>
+                         <td>{{i.category}}</td>
+                         <td>{{i.subcategory}}</td>
+                     <td>{{ i.uploaded_at }}</td>
+
+<td>
+    {% if i.status  %}
+        <a href="{% url 'addcustomer/deactivate_product' i.id %}" id="activeLink" class="btn btn-danger text-white">Block</a>
+    {% else %}
+        <a href="{% url 'addcustomer/activate_product' i.id %}" id="activeLink" class="btn btn-success text-white">Activate</a>
+
+    {% endif %}
+</td>
+
+   <td>
+
+
+
+                            <a href="{% url 'addroles/delete_item' i.id %}" ><i class="fa fa-trash"></i></a>
+                            <a href="{% url 'ott/edit' i.id %}" ><i class="fa fa-eye"></i></a>
+                        </td>
+
+
+                    </tr>
+                {% endfor %}
+
+
+
+                </tbody>
+            </table>
+
+        </div>
+    </div>
+</div>
+    <!-- /.content-header -->
+
+    <!-- Main content -->
+
+      <!-- /.content -->
+  </div>
+{% include 'backend/footer.html' %}
+
+  <!-- /.navbar -->
+

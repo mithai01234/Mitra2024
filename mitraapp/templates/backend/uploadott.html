@@ -1,0 +1,281 @@
+ {% include 'backend/header.html' %}
+   {% include 'backend/sidebar.html' %}
+
+
+ {% load static %}
+ <style>
+    .success-message {
+        color: green;
+        font-weight: bold;
+        border: 1px solid green;
+        padding: 10px;
+        margin: 10px 0;
+        background-color: #dff0d8; /* Optional background color */
+    }
+</style>
+
+ <div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <section class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1>Upload A Video</h1>
+{% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+            <p {% if message.tags %} class="success-message"{% endif %}>{{ message }}</p>
+        {% endfor %}
+    </ul>
+{% endif %}
+<!--    <p class="success-message" >Status saved successfully!</p>-->
+
+          </div>
+
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="#">Home</a></li>
+              <li class="breadcrumb-item active">Upload A Video</li>
+            </ol>
+          </div>
+        </div>
+      </div><!-- /.container-fluid -->
+    </section>
+
+    <!-- Main content -->
+  <section class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <!-- left column -->
+            <div class="col-md-12">
+                <!-- general form elements -->
+
+                <!-- Input addon -->
+                <div class="card card-info">
+                    <div class="card-header">
+                        <h3 class="card-title">Upload A Video</h3>
+                    </div>
+                    <div class="card-body">
+
+                        <form id="your" method="POST" enctype="multipart/form-data">
+                            {% csrf_token %}
+
+                            <div class="row">
+                                <div class="col-lg-6">
+                                    <label for="id_parent_account">Title:</label>
+                                    <input type="text" id="id_parent_account" name="title" maxlength="255"
+                                        required class="form-control">
+                                </div>
+
+                                <div class="col-lg-6">
+                                    <label for="id_account_number">Description:</label>
+                                    <input type="text" id="id_account_number" name="description"
+                                        required class="form-control">
+                                </div>
+                            </div>
+                               <div class="row">
+                                <div class="col-lg-6">
+                                    <label for="id_category">Category:</label>
+                                    <select id="id_category" name="category" class="form-control" required>
+                                        <option value="" disabled selected>Please select</option>
+                                        {% for category in categories %}
+                                            <option value="{{ category.id }}">{{ category.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+<div class="col-lg-6">
+    <label for="id_subcategory">Subcategory:</label>
+    <select id="id_subcategory" name="subcategory" class="form-control" required disabled>
+        <option value="" disabled selected>Please select a category first</option>
+    </select>
+    <small id="subcategoryHelp" class="form-text text-muted">No subcategories available.</small>
+</div>
+                            </div>
+</br></br><div class="row">
+    <div class="col-lg-6">
+        <label for="id_account_name">Video:</label>
+        <input type="file" id="id_account_name" name="video" accept="video/*" required class="form-control" onchange="displaySelectedVideo()">
+    </div>
+
+    <div class="col-lg-6">
+        <div id="selectedVideoContainer">
+            <!-- Selected video will be displayed here -->
+        </div>
+    </div>
+</div>
+                            </br></br>
+                            <div class="row">
+     <div class="col-lg-6">
+        <label for="id_thumbnail">Thumbnail:</label>
+        <input type="file" id="id_thumbnail" name="thumbnail" accept="image/*" class="form-control" onchange="displaySelectedThumbnail()">
+
+    </div>
+                                  <div class="col-lg-6">
+      <div id="selectedThumbnailContainer" class="mt-2"></div>
+    </div>
+</div>
+
+
+
+
+                            <div class="mt-4">
+                                <button type="submit" class="btn btn-primary">Upload</button>
+                                <a href="{% url 'ottlist' %}" class="btn btn-danger">Back</a>
+                            </div>
+                        </form>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+    <!-- /.content -->
+  </div>
+
+
+<script>
+function displaySelectedThumbnail() {
+    var thumbnailInput = document.getElementById('id_thumbnail');
+    var selectedThumbnailContainer = document.getElementById('selectedThumbnailContainer');
+
+    // Remove any existing thumbnail element
+    selectedThumbnailContainer.innerHTML = '';
+
+    // Check if a file is selected
+    if (thumbnailInput.files && thumbnailInput.files[0]) {
+        // Check if the selected file is an image
+        if (thumbnailInput.files[0].type.startsWith('image/')) {
+            var thumbnailImage = document.createElement('img');
+            thumbnailImage.src = URL.createObjectURL(thumbnailInput.files[0]);
+            thumbnailImage.style.maxWidth = '100%';
+
+            // Append the thumbnail image to the container
+            selectedThumbnailContainer.appendChild(thumbnailImage);
+        } else {
+            // Display a message if the selected file is not an image
+            selectedThumbnailContainer.innerHTML = 'Selected file is not an image';
+        }
+    } else {
+        // Display a message if no file is selected
+        selectedThumbnailContainer.innerHTML = 'No thumbnail selected';
+    }
+}
+
+    function displaySelectedVideo() {
+        var input = document.getElementById('id_account_name');
+        var selectedVideoContainer = document.getElementById('selectedVideoContainer');
+
+        // Remove any existing video element
+        selectedVideoContainer.innerHTML = '';
+
+        // Check if a file is selected
+        if (input.files && input.files[0]) {
+            // Check if the selected file is a video
+            if (input.files[0].type.startsWith('video/')) {
+                var video = document.createElement('video');
+                video.src = URL.createObjectURL(input.files[0]);
+                video.controls = true;
+                video.style.width = '100%';
+
+                // Append the video element to the container
+                selectedVideoContainer.appendChild(video);
+            } else {
+                // Display a message if the selected file is not a video
+                selectedVideoContainer.innerHTML = 'Selected file is not a video';
+            }
+        } else {
+            // Display a message if no file is selected
+            selectedVideoContainer.innerHTML = 'No video selected';
+        }
+    }
+</script>
+<script>
+    document.getElementById('id_category').addEventListener('change', function () {
+        var category_id = this.value;
+        var subcategorySelect = document.getElementById('id_subcategory');
+        var subcategoryHelp = document.getElementById('subcategoryHelp');
+        subcategorySelect.innerHTML = '';  // Clear existing options
+
+        // If the selected category is not empty
+        if (category_id) {
+            // Display a message when a category is selected
+            subcategoryHelp.innerHTML = 'Please select a subcategory for the selected category.';
+
+            // Fetch subcategories for the selected category using AJAX or any other method
+            fetch('/get-subcategories/?category_id=' + category_id)
+                .then(response => response.json())
+                .then(data => {
+                    // If there are subcategories available
+                    if (data.length > 0) {
+                        // Populate the subcategory dropdown with options
+                        data.forEach(subcategory => {
+                            var option = document.createElement('option');
+                            option.value = subcategory.id;
+                            option.textContent = subcategory.name;
+                            subcategorySelect.appendChild(option);
+                        });
+
+                        // Enable the subcategory dropdown
+                        subcategorySelect.disabled = false;
+                        subcategoryHelp.style.display = 'none';
+                    } else {
+                        // If no subcategories are available, display a message
+                        subcategorySelect.disabled = true;
+                        subcategoryHelp.style.display = 'block';
+
+                        // Show a pop-up alert
+                        alert('Please select a category before submitting the form.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching subcategories:', error);
+                });
+        } else {
+            // If no category is selected, disable the subcategory dropdown
+            subcategorySelect.disabled = true;
+
+            // Hide the message when no category is selected
+            subcategoryHelp.style.display = 'none';
+        }
+    });
+
+    // Add an event listener to the form to prevent submission when the subcategory dropdown is disabled
+    document.getElementById('your').addEventListener('submit', function (event) {
+        var subcategorySelect = document.getElementById('id_subcategory');
+        if (subcategorySelect.disabled) {
+            // Show a pop-up alert
+            alert('Please select a subcategory before submitting the form.');
+
+            // Prevent form submission
+            event.preventDefault();
+        }
+    });
+</script>
+
+<script>
+    document.getElementById('your').addEventListener('submit', function (event) {
+        var subcategorySelect = document.getElementById('id_subcategory');
+        var subcategoryHelp = document.getElementById('subcategoryHelp');
+
+        if (subcategorySelect.disabled) {
+            // Show a pop-up alert
+            alert('Please select a subcategory before submitting the form.');
+
+            // Prevent form submission
+            event.preventDefault();
+        } else if (subcategorySelect.value === '') {
+            // Show a pop-up alert
+            alert('Please select a subcategory before submitting the form.');
+
+            // Prevent form submission
+            event.preventDefault();
+        }
+    });
+</script>
+
+{% include 'backend/footer.html' %}
+
+  <!-- /.navbar -->
