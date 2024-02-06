@@ -6,6 +6,10 @@ from registration.models import CustomUser
 from rest_framework import generics
 from registration.serializers import CustomUserSerializer
 from .serializers import CustomuSerializer
+from django.contrib.auth.decorators import login_required
+
+@login_required(login_url='backend/login')
+
 def registerlist(request):
     registerapp=CustomUser.objects.all()
     context={
@@ -15,6 +19,8 @@ def registerlist(request):
 
     }
     return render(request,'backend/registerList.html',context)
+@login_required(login_url='backend/login')
+
 def waletlist(request):
     registerapp=CustomUser.objects.all()
     context={
@@ -29,6 +35,7 @@ class CustomUserList(generics.ListAPIView):
 
     def get_queryset(self):
         return CustomUser.objects.all()
+@login_required(login_url='backend/login')
 
 def view_item(request, myid):
     sel_regform = CustomUser.objects.get(id=myid)
