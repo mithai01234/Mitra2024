@@ -49,7 +49,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     referral_link = models.CharField(max_length=255, blank=True, null=True, unique=True)
     slug = models.CharField(max_length=15, blank=True,unique=True, null=True)
     objects = CustomUserManager()
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=6, default=0)
     level = models.PositiveIntegerField(default=1)
     USERNAME_FIELD = 'phone_number'
     REQUIRED_FIELDS = ['name']
