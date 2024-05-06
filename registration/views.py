@@ -71,7 +71,7 @@ class RegistrationView(APIView):
 
                         if sponsor:
                             # Define the reward amount based on the level
-                            amount=0.40
+                            amount=0.0002
 
                             # Create a TableJoining record for the sponsor at this level
                             TableJoining.objects.create(uid=sponsor, sponser_id=user, amount=amount,
@@ -94,33 +94,33 @@ class RegistrationView(APIView):
                             if sponsor:
                                 # Define the reward amount based on the level
                                 if level == 1:
-                                    amount = 0.15
+                                    amount = 0.000028
                                 elif level == 2:
-                                    amount = 0.10
+                                    amount = 0.000010
                                 elif level == 3:
-                                    amount = 0.10
+                                    amount = 0.000010
                                 elif level == 4:
-                                    amount = 0.10
+                                    amount = 0.000010
                                 elif level == 5:
-                                    amount = 0.10
+                                    amount = 0.000010
                                 elif level == 6:
-                                    amount = 0.05
+                                    amount = 0.000005
                                 elif level == 7:
-                                    amount = 0.05
+                                    amount = 0.000002
                                 elif level == 8:
-                                    amount = 0.05
+                                    amount = 0.000001
                                 elif level == 9:
-                                    amount = 0.05
+                                    amount = 0.000001
                                 elif level == 10:
-                                    amount = 0.03
+                                    amount = 0.000001
                                 elif level == 11:
-                                    amount = 0.03
+                                    amount = 0.0000005
                                 elif level == 12:
-                                    amount = 0.03
+                                    amount = 0.0000005
                                 elif level == 13:
-                                    amount = 0.02
+                                    amount = 0.0000005
                                 elif level == 14:
-                                    amount = 0.02
+                                    amount = 0.0000005
                                 else:
                                     amount = 0.0  # Adjust for higher levels as needed
 
