@@ -1,4 +1,41 @@
 from django.db.models import Sum
+from azure.storage.blob import BlobServiceClient
+from azure.storage.blob import BlobServiceClient, BlobClient, ContentSettings
+from .serializers import VideoSerializer, LikeSerializer, CommentUpdateSerializer,CommentSerializer,VideoUpdateSerializer
+from django.shortcuts import render, redirect, get_object_or_404
+from rest_framework.decorators import action
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from .models import Video, Like, Comment
+from io import BytesIO
+from PIL import Image
+from django.contrib.auth import get_user_model
+from rest_framework.response import Response
+from rest_framework import generics, permissions
+from rest_framework.views import APIView
+from django.conf import settings
+from moviepy.editor import VideoFileClip
+import os
+from registration.models import CustomUser
+import moviepy.editor as mp
+from django.conf import settings
+from django.core.files.storage import FileSystemStorage
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from azure.storage.blob import BlobServiceClient, ContentSettings
+import os
+from azure.storage.blob import BlobServiceClient, BlobClient, ContentSettings
+from django.conf import settings
+import uuid
+from moviepy.editor import VideoFileClip
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework import viewsets
+from .models import Video
+from .serializers import VideoSerializer
+from azure.storage.blob import BlobServiceClient, ContentSettings
 from relationship.models import Follow
 from .serializers import VideoSerializer, LikeSerializer, CommentUpdateSerializer, CommentSerializer, \
     VideoUpdateSerializer, CommentDeSerializer
@@ -135,169 +172,79 @@ class VideoViewSet(viewsets.ModelViewSet):
     #
     #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-
-        if serializer.is_valid():
-            video_file = request.data.get('file')
-            title = request.data.get('title', '')
-
-            if not video_file:
-                return Response({'error': 'No video file provided'}, status=status.HTTP_400_BAD_REQUEST)
-
-            try:
-                # Initialize the S3 client for DigitalOcean Spaces
-                s3 = boto3.client(
-                    's3',
-                    endpoint_url='https://mitra-bucket.blr1.digitaloceanspaces.com',
-                    aws_access_key_id='DO006WCUVZ39QR8WGU7D',
-                    aws_secret_access_key='9WX8lYo2dTul2NQKPDbM5+AC1455O2GT+l69RI9ex7g'
-                )
-
-                # Use the original file name as the key for the video file within the 'videos' directory
-                video_key = f'videos/{video_file.name}'
-
-                # Save the video directly to DigitalOcean Spaces
-                video_data = video_file.read()
-
-                # Compress the video before uploading
-                compressed_video_path = self.compress_video(video_data)
-                if not compressed_video_path:
-                    return Response({'error': 'Video compression failed'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-                s3.upload_file(compressed_video_path, 'mitra-bucket', video_key, ExtraArgs={'ACL': 'public-read'})
-
-                # Generate a thumbnail from the video and save it
-                thumbnail_path = self.generate_and_save_thumbnail(video_data)
-
-                if thumbnail_path:
-                    # Generate a unique key for the thumbnail file within the 'videos' directory
-                    thumbnail_key = f'videos/{video_file.name}.thumbnail.jpg'
-
-                    # Upload the thumbnail image directly to DigitalOcean Spaces
-                    thumbnail_data = io.BytesIO(open(thumbnail_path, 'rb').read())
-                    s3.upload_fileobj(thumbnail_data, 'mitra-bucket', thumbnail_key, ExtraArgs={'ACL': 'public-read'})
-
-                    # Save the video data to the database, including the video and thumbnail keys
-                    serializer.save(file=video_key, thumbnail=thumbnail_key, status=True)
-
-                    # Clean up temporary files
-                    os.remove(thumbnail_path)
-                    os.remove(compressed_video_path)
-
-                    return Response({'message': 'Video uploaded successfully'}, status=status.HTTP_201_CREATED)
-                else:
-                    return Response({'error': 'Thumbnail generation failed'},
-                                    status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-            except Exception as e:
-                return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    # def compress_video(self, video_data):
+    # def create(self, request, *args, **kwargs):
+    #     serializer = VideoSerializer(data=request.data)
+    #
+    #     if serializer.is_valid():
+    #         video_file = request.data.get('file')
+    #         title = serializer.validated_data.get('title', '')
+    #
+    #         if not video_file:
+    #             return Response({'error': 'No video file provided'}, status=status.HTTP_400_BAD_REQUEST)
+    #
+    #         try:
+    #             # Save the uploaded video to a temporary location
+    #             temporary_video_path = self.save_uploaded_video(video_file)
+    #
+    #             if not temporary_video_path:
+    #                 return Response({'error': 'Failed to save video'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    #
+    #             # Compress the video
+    #             compressed_video_path = self.compress_video(temporary_video_path)
+    #
+    #             if not compressed_video_path:
+    #                 return Response({'error': 'Failed to compress video'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    #
+    #             # Initialize the BlobServiceClient
+    #             blob_service_client = BlobServiceClient(
+    #                 account_url=f'https://{settings.AZURE_ACCOUNT_NAME}.blob.core.windows.net',
+    #                 credential=settings.AZURE_ACCOUNT_KEY
+    #             )
+    #
+    #             # Get the container client
+    #             container_client = blob_service_client.get_container_client(settings.AZURE_CONTAINER)
+    #             # Generate a unique blob name for the video file
+    #             blob_name = f'{title}_{uuid.uuid4()}_compressed.mp4'
+    #
+    #             # Get the BlobClient for the video file
+    #             blob_client = container_client.get_blob_client(blob_name)
+    #
+    #             # Upload the compressed video to Azure Blob Storage
+    #             with open(compressed_video_path, "rb") as data:
+    #                 blob_client.upload_blob(data, content_settings=ContentSettings(content_type="video/mp4"))
+    #
+    #             # Save the video data to the database
+    #             serializer.save(file=blob_name)
+    #
+    #             # Clean up temporary files
+    #             os.remove(temporary_video_path)
+    #             os.remove(compressed_video_path)
+    #
+    #             return Response({'message': 'Video uploaded and compressed successfully'}, status=status.HTTP_201_CREATED)
+    #
+    #         except Exception as e:
+    #             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    #
+    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    #
+    # def save_uploaded_video(self, uploaded_video):
     #     try:
-    #         # Create a temporary file to save the compressed video
-    #         with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as temp_compressed_video_file:
-    #             # Write the video data to the temporary file
-    #             temp_compressed_video_file.write(video_data)
+    #         # Create a FileSystemStorage instance for saving the uploaded video
+    #         fs = FileSystemStorage()
     #
-    #             # Load the video using MoviePy
-    #             video = mp.VideoFileClip(temp_compressed_video_file.name)
+    #         # Generate a unique temporary file name
+    #         temporary_video_name = fs.get_available_name("temp_video.mp4")
     #
-    #             # Define the target resolution and bitrate (adjust as needed)
-    #             target_resolution = (720, 420)
-    #             target_bitrate = "500k"
+    #         # Save the uploaded video to the temporary location
+    #         temporary_video_path = fs.save(temporary_video_name, uploaded_video)
     #
-    #             # Resize the video to the target resolution
-    #             resized_video = video.resize(target_resolution)
-    #
-    #             # Write the compressed video to the temporary file with the specified bitrate
-    #             resized_video.write_videofile(temp_compressed_video_file.name, codec="libx264", bitrate=target_bitrate)
-    #
-    #             return temp_compressed_video_file.name
+    #         # Get the full file path of the saved temporary video
+    #         return os.path.join(settings.MEDIA_ROOT, temporary_video_path)
     #     except Exception as e:
-    #         # Handle any errors that may occur during video compression
-    #         print(f"Video compression error: {str(e)}")
+    #         # Handle any errors that may occur during video saving
+    #         print(f"Video saving error: {str(e)}")
     #         return None
-    def compress_video(self, video_data):
-        try:
-            # Define the path for storing the compressed video temporarily
-            compressed_video_path = 'temp_compressed_video.mp4'
-
-            # Save the video data to the temporary path
-            with open(compressed_video_path, 'wb') as video_file:
-                video_file.write(video_data)
-
-            # Reduce video quality using MoviePy without resizing or changing audio
-            clip = VideoFileClip(compressed_video_path)
-            clip.write_videofile('temp_reduced_video.mp4', codec="libx264", audio_codec="aac", bitrate="500k")
-
-            # Return the path to the compressed video
-            return 'temp_reduced_video.mp4'
-
-        except Exception as e:
-            print(f'Error compressing video: {str(e)}')
-            return None
-    # def compress_video(self, video_data):
-    #     try:
-    #         # Define the path for storing the compressed video temporarily
-    #         compressed_video_path = 'temp_compressed_video.mp4'
     #
-    #         # Save the video data to the temporary path
-    #         with open(compressed_video_path, 'wb') as video_file:
-    #             video_file.write(video_data)
-    #
-    #         # Reduce video quality using MoviePy
-    #         clip = VideoFileClip(compressed_video_path)
-    #         reduced_clip = clip.resize(height=clip.size[1], width=clip.size[0])  # Adjust the height or width as needed
-    #         reduced_clip.write_videofile('temp_reduced_video.mp4', codec="libx264", audio_codec="aac", bitrate="500k")
-    #
-    #         # Return the path to
-    #         # the compressed video
-    #         return 'temp_reduced_video.mp4'
-    #
-    #     except Exception as e:
-    #         print(f'Error compressing video: {str(e)}')
-    #         return None
-    def generate_and_save_thumbnail(self, video_data):
-        try:
-            # Load the video using MoviePy
-            with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as temp_video_file:
-                temp_video_file.write(video_data)
-
-            video = mp.VideoFileClip(temp_video_file.name)
-
-            # Generate the thumbnail from the first frame of the video
-            thumbnail = video.get_frame(0)
-
-            # Create a temporary file to save the thumbnail
-            with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as temp_thumbnail_file:
-                thumbnail_image = Image.fromarray(thumbnail)
-                thumbnail_image.save(temp_thumbnail_file.name)
-
-                return temp_thumbnail_file.name
-        except Exception as e:
-            # Handle any errors that may occur during thumbnail creation
-            print(f"Thumbnail creation error: {str(e)}")
-            return None
-    def save_uploaded_video(self, uploaded_video):
-        try:
-            # Create a FileSystemStorage instance for saving the uploaded video
-            fs = FileSystemStorage()
-
-            # Generate a unique temporary file name
-            temporary_video_name = fs.get_available_name("temp_video.mp4")
-
-            # Save the uploaded video to the temporary location
-            temporary_video_path = fs.save(temporary_video_name, uploaded_video)
-
-            # Get the full file path of the saved temporary video
-            return os.path.join(settings.MEDIA_ROOT, temporary_video_path)
-        except Exception as e:
-            # Handle any errors that may occur during video saving
-            print(f"Video saving error: {str(e)}")
-            return None
-
     # def compress_video(self, video_path):
     #     try:
     #         # Load the video using MoviePy
@@ -323,6 +270,273 @@ class VideoViewSet(viewsets.ModelViewSet):
     #         # Handle any errors that may occur during video compression
     #         print(f"Video compression error: {str(e)}")
     #         return None
+    #
+    # # def compress_video(self, video_data):
+    # #     try:
+    # #         # Create a temporary file to save the compressed video
+    # #         with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as temp_compressed_video_file:
+    # #             # Write the video data to the temporary file
+    # #             temp_compressed_video_file.write(video_data)
+    # #
+    # #             # Load the video using MoviePy
+    # #             video = mp.VideoFileClip(temp_compressed_video_file.name)
+    # #
+    # #             # Define the target resolution and bitrate (adjust as needed)
+    # #             target_resolution = (720, 420)
+    # #             target_bitrate = "500k"
+    # #
+    # #             # Resize the video to the target resolution
+    # #             resized_video = video.resize(target_resolution)
+    # #
+    # #             # Write the compressed video to the temporary file with the specified bitrate
+    # #             resized_video.write_videofile(temp_compressed_video_file.name, codec="libx264", bitrate=target_bitrate)
+    # #
+    # #             return temp_compressed_video_file.name
+    # #     except Exception as e:
+    # #         # Handle any errors that may occur during video compression
+    # #         print(f"Video compression error: {str(e)}")
+    # #         return None
+    # # def compress_video(self, video_data):
+    # #     try:
+    # #         # Define the path for storing the compressed video temporarily
+    # #         compressed_video_path = 'temp_compressed_video.mp4'
+    # #
+    # #         # Save the video data to the temporary path
+    # #         with open(compressed_video_path, 'wb') as video_file:
+    # #             video_file.write(video_data)
+    # #
+    # #         # Reduce video quality using MoviePy without resizing or changing audio
+    # #         clip = VideoFileClip(compressed_video_path)
+    # #         clip.write_videofile('temp_reduced_video.mp4', codec="libx264", audio_codec="aac", bitrate="500k")
+    # #
+    # #         # Return the path to the compressed video
+    # #         return 'temp_reduced_video.mp4'
+    # #
+    # #     except Exception as e:
+    # #         print(f'Error compressing video: {str(e)}')
+    # #         return None
+    # # def compress_video(self, video_data):
+    # #     try:
+    # #         # Define the path for storing the compressed video temporarily
+    # #         compressed_video_path = 'temp_compressed_video.mp4'
+    # #
+    # #         # Save the video data to the temporary path
+    # #         with open(compressed_video_path, 'wb') as video_file:
+    # #             video_file.write(video_data)
+    # #
+    # #         # Reduce video quality using MoviePy
+    # #         clip = VideoFileClip(compressed_video_path)
+    # #         reduced_clip = clip.resize(height=clip.size[1], width=clip.size[0])  # Adjust the height or width as needed
+    # #         reduced_clip.write_videofile('temp_reduced_video.mp4', codec="libx264", audio_codec="aac", bitrate="500k")
+    # #
+    # #         # Return the path to
+    # #         # the compressed video
+    # #         return 'temp_reduced_video.mp4'
+    # #
+    # #     except Exception as e:
+    # #         print(f'Error compressing video: {str(e)}')
+    # #         return None
+    # def generate_and_save_thumbnail(self, video_data):
+    #     try:
+    #         # Load the video using MoviePy
+    #         with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as temp_video_file:
+    #             temp_video_file.write(video_data)
+    #
+    #         video = mp.VideoFileClip(temp_video_file.name)
+    #
+    #         # Generate the thumbnail from the first frame of the video
+    #         thumbnail = video.get_frame(0)
+    #
+    #         # Create a temporary file to save the thumbnail
+    #         with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as temp_thumbnail_file:
+    #             thumbnail_image = Image.fromarray(thumbnail)
+    #             thumbnail_image.save(temp_thumbnail_file.name)
+    #
+    #             return temp_thumbnail_file.name
+    #     except Exception as e:
+    #         # Handle any errors that may occur during thumbnail creation
+    #         print(f"Thumbnail creation error: {str(e)}")
+    #         return None
+    # # def save_uploaded_video(self, uploaded_video):
+    # #     try:
+    # #         # Create a FileSystemStorage instance for saving the uploaded video
+    # #         fs = FileSystemStorage()
+    # #
+    # #         # Generate a unique temporary file name
+    # #         temporary_video_name = fs.get_available_name("temp_video.mp4")
+    # #
+    # #         # Save the uploaded video to the temporary location
+    # #         temporary_video_path = fs.save(temporary_video_name, uploaded_video)
+    # #
+    # #         # Get the full file path of the saved temporary video
+    # #         return os.path.join(settings.MEDIA_ROOT, temporary_video_path)
+    # #     except Exception as e:
+    # #         # Handle any errors that may occur during video saving
+    # #         print(f"Video saving error: {str(e)}")
+    # #         return None
+    #
+    # # def compress_video(self, video_path):
+    # #     try:
+    # #         # Load the video using MoviePy
+    # #         video = mp.VideoFileClip(video_path)
+    # #
+    # #         # Define the output file path for the compressed video
+    # #         compressed_video_path = "compressed_video.mp4"
+    # #
+    # #         # Define the target resolution and bitrate (adjust as needed)
+    # #         # target_resolution = (640, 360)
+    # #         original_width, original_height = video.size
+    # #
+    # #         target_bitrate = "500k"
+    # #
+    # #         # Resize the video to the target resolution
+    # #         resized_video = video.resize((original_width, original_height))
+    # #
+    # #         # Write the compressed video to the output file with the specified bitrate
+    # #         resized_video.write_videofile(compressed_video_path, codec="libx264", bitrate=target_bitrate)
+    # #
+    # #         return compressed_video_path
+    # #     except Exception as e:
+    # #         # Handle any errors that may occur during video compression
+    # #         print(f"Video compression error: {str(e)}")
+    # #         return None
+
+    def create(self, request, *args, **kwargs):
+        serializer = VideoSerializer(data=request.data)
+
+        if serializer.is_valid():
+            video_file = request.data.get('file')
+            title = serializer.validated_data.get('title', '')
+
+            if not video_file:
+                return Response({'error': 'No video file provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                # Save the uploaded video to a temporary location
+                temporary_video_path = self.save_uploaded_video(video_file)
+
+                if not temporary_video_path:
+                    return Response({'error': 'Failed to save video'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+                # Generate a thumbnail from the video
+                thumbnail_path = self.generate_thumbnail(temporary_video_path)
+
+                if not thumbnail_path:
+                    return Response({'error': 'Failed to generate thumbnail'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+                # Compress the video
+                compressed_video_path = self.compress_video(temporary_video_path)
+
+                if not compressed_video_path:
+                    return Response({'error': 'Failed to compress video'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+                # Initialize the BlobServiceClient
+                blob_service_client = BlobServiceClient(
+                    account_url=f'https://{settings.AZURE_ACCOUNT_NAME}.blob.core.windows.net',
+                    credential=settings.AZURE_ACCOUNT_KEY
+                )
+
+                # Get the container client
+                container_client = blob_service_client.get_container_client(settings.AZURE_CONTAINER)
+
+                # Generate unique blob names for the video file and thumbnail
+                video_blob_name = f'{title}_{uuid.uuid4()}_compressed.mp4'
+                thumbnail_blob_name = f'{title}_{uuid.uuid4()}_thumbnail.jpg'
+
+                # Get the BlobClients for the video file and thumbnail
+                video_blob_client = container_client.get_blob_client(video_blob_name)
+                thumbnail_blob_client = container_client.get_blob_client(thumbnail_blob_name)
+
+                # Upload the compressed video to Azure Blob Storage
+                with open(compressed_video_path, "rb") as video_data:
+                    video_blob_client.upload_blob(video_data, content_settings=ContentSettings(content_type="video/mp4"))
+
+                # Upload the thumbnail to Azure Blob Storage
+                with open(thumbnail_path, "rb") as thumbnail_data:
+                    thumbnail_blob_client.upload_blob(thumbnail_data, content_settings=ContentSettings(content_type="image/jpeg"))
+
+                # Save the video and thumbnail data to the database
+                serializer.save(file=video_blob_name, thumbnail=thumbnail_blob_name)
+
+                # Clean up temporary files
+                os.remove(temporary_video_path)
+                os.remove(compressed_video_path)
+                os.remove(thumbnail_path)
+
+                return Response({'message': 'Video uploaded, compressed, and thumbnail generated successfully'}, status=status.HTTP_201_CREATED)
+
+            except Exception as e:
+                return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def generate_thumbnail(self, video_path):
+        try:
+            # Open the video file using MoviePy
+            video = VideoFileClip(video_path)
+
+            # Capture the first frame of the video as the thumbnail
+            thumbnail = video.get_frame(0)
+
+            # Create a BytesIO object to hold the thumbnail data
+            thumbnail_buffer = BytesIO()
+
+            # Convert the thumbnail to JPEG format and save it to the buffer
+            Image.fromarray(thumbnail).save(thumbnail_buffer, format='JPEG')
+
+            # Save the thumbnail to a temporary file
+            thumbnail_path = os.path.join(settings.MEDIA_ROOT, 'temp_thumbnail.jpg')
+            with open(thumbnail_path, 'wb') as thumbnail_file:
+                thumbnail_file.write(thumbnail_buffer.getvalue())
+
+            return thumbnail_path
+
+        except Exception as e:
+            print(f"Thumbnail generation error: {str(e)}")
+            return None
+    def save_uploaded_video(self, uploaded_video):
+        try:
+            # Create a FileSystemStorage instance for saving the uploaded video
+            fs = FileSystemStorage()
+
+            # Generate a unique temporary file name
+            temporary_video_name = fs.get_available_name("temp_video.mp4")
+
+            # Save the uploaded video to the temporary location
+            temporary_video_path = fs.save(temporary_video_name, uploaded_video)
+
+            # Get the full file path of the saved temporary video
+            return os.path.join(settings.MEDIA_ROOT, temporary_video_path)
+        except Exception as e:
+            # Handle any errors that may occur during video saving
+            print(f"Video saving error: {str(e)}")
+            return None
+
+    def compress_video(self, video_path):
+        try:
+            # Load the video using MoviePy
+            video = mp.VideoFileClip(video_path)
+
+            # Define the output file path for the compressed video
+            compressed_video_path = "compressed_video.mp4"
+
+            # Define the target resolution and bitrate (adjust as needed)
+            # target_resolution = (640, 360)
+            original_width, original_height = video.size
+
+            target_bitrate = "500k"
+
+            # Resize the video to the target resolution
+            resized_video = video.resize((original_width, original_height))
+
+            # Write the compressed video to the output file with the specified bitrate
+            resized_video.write_videofile(compressed_video_path, codec="libx264", bitrate=target_bitrate)
+
+            return compressed_video_path
+        except Exception as e:
+            # Handle any errors that may occur during video compression
+            print(f"Video compression error: {str(e)}")
+            return None
 
     def get_queryset(self):
         # Get the user ID from the URL parameter (e.g., /api/videos/?user_id=123)
