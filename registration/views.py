@@ -21,7 +21,7 @@ from rest_framework.permissions import BasePermission
 from rest_framework_api_key.permissions import HasAPIKey
 from rest_framework.decorators import api_view
 from decimal import Decimal
-from rest_framework.response import Response
+
 class RegistrationView(APIView):
     def post(self, request):
         serializer = CustomUserSerializer(data=request.data)
@@ -177,8 +177,7 @@ class ProfileUpdateView(APIView):
     def get(self, request):
         user_id=request.query_params.get('user_id',None)
         if user_id == None:
-
-            return Response("User_Id is required field")
+            return response("User_Id is required field")
         else:
             try:
                 user = CustomUser.objects.get(id=user_id)

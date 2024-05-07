@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 import os
+# Add these imports at the top of your settings file
+from storages.backends.azure_storage import AzureStorage
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -187,6 +189,11 @@ EMAIL_HOST_PASSWORD = ''
 # AWS_S3_ENDPOINT_URL = 'https://blr1.vultrobjects.com'
 #
 # DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+
+
+
+
 # AWS_ACCESS_KEY_ID = 'DO006WCUVZ39QR8WGU7D'
 # AWS_SECRET_ACCESS_KEY = '9WX8lYo2dTul2NQKPDbM5+AC1455O2GT+l69RI9ex7g'
 # AWS_STORAGE_BUCKET_NAME = 'mitra-bucket'  # Replace with your Vultr Object Storage bucket name
@@ -195,21 +202,20 @@ EMAIL_HOST_PASSWORD = ''
 # # Use the Vultr S3Boto3Storage backend
 # DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 #
+#
 
-# settings.py
 
-# ...
 
-# Add these lines at the end of the file
-AWS_ACCESS_KEY_ID = 'DO006WCUVZ39QR8WGU7D'
-AWS_SECRET_ACCESS_KEY = '9WX8lYo2dTul2NQKPDbM5+AC1455O2GT+l69RI9ex7g'
-AWS_STORAGE_BUCKET_NAME = 'mitra-bucket'
-AWS_S3_REGION_NAME = 'blr1'
-AWS_S3_ENDPOINT_URL = 'https://mitra-bucket.blr1.digitaloceanspaces.com'
-AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.{AWS_S3_REGION_NAME}.cdn.digitaloceanspaces.com/mitra-bucket"
-AWS_DEFAULT_ACL = 'public-read'
-# Use the following if your Space is in the default NYC3 region
-# AWS_S3_ENDPOINT_URL = 'https://nyc3.digitaloceanspaces.com'
 
-# Set the default storage engine to use S3
-DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+import os
+from storages.backends.azure_storage import AzureStorage
+
+AZURE_ACCOUNT_NAME = 'mitravideostorage'
+AZURE_ACCOUNT_KEY = 'Ox1ZIToQoVzGoOtFTfAIpn7SGRNQNYB6VdcGbIcakv7nOpHH7IUR0Upu3ORlRn6YZapXWpSwyBRg+ASt4mCy0w=='
+AZURE_CONTAINER = 'projectvideos'
+
+DEFAULT_FILE_STORAGE = 'storages.backends.azure_storage.AzureStorage'
+AZURE_CUSTOM_DOMAIN = f'{AZURE_ACCOUNT_NAME}.blob.core.windows.net'
+
+MEDIA_URL = f'https://{AZURE_CUSTOM_DOMAIN}/{AZURE_CONTAINER}/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
