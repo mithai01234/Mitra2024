@@ -967,26 +967,14 @@ class GetVideoLink(APIView):
         try:
             video = Video.objects.get(pk=video_title)
 
-            # Generate a pre-signed URL for the video file
-            s3_client = boto3.client(
-                's3',
-                endpoint_url='https://mitra-bucket.blr1.digitaloceanspaces.com',  # Vultr Object Storage endpoint
-                aws_access_key_id='DO006WCUVZ39QR8WGU7D',
-                aws_secret_access_key='9WX8lYo2dTul2NQKPDbM5+AC1455O2GT+l69RI9ex7g'
-            )
-            video_url = s3_client.generate_presigned_url(
-                'get_object',
-                Params={
-                    'Bucket': 'mitra-bucket',
-                    'Key': video.file.name,
-                },
-                ExpiresIn=3600  # Set the expiration time (in seconds)
-            )
+            # Construct the URL
+            blob_name = video.file.name
+            video_url = f"https://mitravideostorage.blob.core.windows.net/projectvideos/{blob_name}"
 
             return Response({'video_link': video_url}, status=status.HTTP_200_OK)
         except Video.DoesNotExist:
             return Response({'error': 'Video not found.'}, status=status.HTTP_404_NOT_FOUND)
-        except ClientError as e:
+        except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 from django.http import JsonResponse
